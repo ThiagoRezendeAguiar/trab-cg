@@ -35,6 +35,7 @@ class MainWindow(QMainWindow):
 
         self.toolbar.tool_changed.connect(self.canvas.set_tool)
         self.toolbar.algorithm_changed.connect(self.canvas.set_algorithm)
+        self.toolbar.radius_changed.connect(self.canvas.set_radius)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -18,3 +18,5 @@ class Primitive:
     p: List[Point]
     color: tuple = (0, 0, 0)
     algorithm: any = None
+    radius: int = 0
+    selected: bool = False

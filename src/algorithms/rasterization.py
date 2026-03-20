@@ -70,3 +70,31 @@ def line_bresenham(x0: int, y0:int , x1: int, y1: int):
 
     return points
         
+def circle_bresenham(xc: int, yc: int, r: int):
+    points = []
+    p = 3 - 2 * r
+    x = 0
+    y = r
+
+    def add_symmetric_points(xc, yc, x, y):
+        points.append((xc + x, yc + y))
+        points.append((xc - x, yc + y))
+        points.append((xc + x, yc - y))
+        points.append((xc - x, yc - y))
+        points.append((xc + y, yc + x))
+        points.append((xc - y, yc + x))
+        points.append((xc + y, yc - x))
+        points.append((xc - y, yc - x))
+
+    add_symmetric_points(xc, yc, x, y)
+
+    while x < y:
+        if p < 0:
+            p += 4 * x + 6
+        else:
+            p += 4 * (x - y) + 10
+            y -= 1
+        x += 1
+        add_symmetric_points(xc, yc, x, y)
+
+    return points

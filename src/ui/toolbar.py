@@ -1,183 +1,222 @@
-from enum import Enum
 from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtWidgets import (
-    QHBoxLayout, QToolButton, QFrame, QSizePolicy, QButtonGroup
+    QCheckBox, QComboBox, QHBoxLayout, QToolButton, QFrame, QButtonGroup, 
+    QSpinBox, QDoubleSpinBox, QLabel, QVBoxLayout
 )
-
 from model.primitives import PrimitiveType
 from qt_material_icons import MaterialIcon
+from enum import Enum
 
 class LineAlgorithm(Enum):
     DDA = "DDA"
     BRESENHAM = "Bresenham"
 
-TOOLS = [
-    (PrimitiveType.POINT, "fiber_manual_record", "Ponto"),
-    (PrimitiveType.LINE, "diagonal_line", "Reta"),
-    (PrimitiveType.CIRCLE, "circle", "Circunferência"),
-    (PrimitiveType.POLYGON, "hexagon", "Polígono"),
-]
-
 PALETTE = {
-    "bg":             "#ffffff",   
-    "btn_idle":       "#f2f2f7",    
-    "btn_hover":      "#e5e5ea",    
-    "btn_active":     "#007aff",   
-    "btn_active_fg":  "#ffffff",    
-    "btn_idle_fg":    "#1c1c1e",    
-    "border":         "#d1d1d6",   
+    "bg": "#F8F9FA",
+    "hover": "#E2E6EA",
+    "active": "#0D6EFD",
+    "border": "#DEE2E6",
+    "text_sec": "#6C757D",
+    "text_main": "#212529"
 }
 
 STYLESHEET = f"""
-    QFrame#Toolbar {{
-        background-color: {PALETTE['bg']};
-        border-bottom: 1px solid {PALETTE['border']};
+    QFrame#Toolbar {{ 
+        background-color: {PALETTE['bg']}; 
+        border-bottom: 1px solid {PALETTE['border']}; 
     }}
     QToolButton {{
-        background-color: {PALETTE['btn_idle']};
-        color: {PALETTE['btn_idle_fg']};
-        border: none;
-        border-radius: 12px;
-        padding: 8px 16px;
-        font-size: 14px;
-        font-weight: 500;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: transparent;
+        padding: 6px;
+        color: {PALETTE['text_main']};
     }}
-    QToolButton:hover {{
-        background-color: {PALETTE['btn_hover']};
-        color: #1c1c1e;
+    QToolButton:hover {{ 
+        background-color: {PALETTE['hover']}; 
+        border: 1px solid {PALETTE['border']};
     }}
-    QToolButton:checked {{
-        background-color: {PALETTE['btn_active']};
-        color: {PALETTE['btn_active_fg']};
-        font-weight: bold;
+    QToolButton:checked {{ 
+        background-color: {PALETTE['active']}; 
+        color: white; 
+        border: 1px solid {PALETTE['active']};
     }}
-    
-    /* --- ESTILO DO CONTROLE SEGMENTADO (ALGORITMOS) --- */
-    QFrame#AlgContainer {{
-        background-color: {PALETTE['btn_idle']};
-        border-radius: 12px;
+    QSpinBox, QDoubleSpinBox {{
+        border: 1px solid {PALETTE['border']};
+        border-radius: 4px;
+        background: white;
+        padding: 2px 4px;
+        color: {PALETTE['text_main']};
     }}
-    QToolButton.alg-btn {{
-        background-color: transparent;
-        color: {PALETTE['btn_idle_fg']};
-        border-radius: 10px;
-        padding: 6px 14px;
-        font-size: 13px;
+    QLabel {{ 
+        color: {PALETTE['text_sec']}; 
+        font-size: 11px; 
+        font-weight: 600; 
+        text-transform: uppercase; 
     }}
-    QToolButton.alg-btn:hover {{
-        background-color: #e5e5ea; /* leve hover no inativo */
-    }}
-    QToolButton.alg-btn:checked {{
-        background-color: {PALETTE['bg']}; /* Fundo branco para destacar */
-        color: {PALETTE['btn_active']};    /* Texto azul */
-        border: 1px solid {PALETTE['border']}; /* Bordinha sutil */
-        font-weight: bold;
+    QLabel.SectionTitle {{
+        margin-bottom: 4px;
     }}
 """
-
-class ToolButton(QToolButton):
-    def __init__(self, primitive: PrimitiveType, icon_name: str, label: str, shortcut: str = "", parent=None):
-        super().__init__(parent)
-        self.primitive = primitive
-        
-        self.setCheckable(True)
-        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.setFixedHeight(44)
-        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-
-        self.setIcon(MaterialIcon(icon_name))
-        self.setIconSize(QSize(22, 22))
-        self.setText(f" {label}")
-        if shortcut:
-            self.setToolTip(f"{label}  [{shortcut}]")
-
 
 class ToolBar(QFrame):
     tool_changed = Signal(object)
     algorithm_changed = Signal(object)
+    radius_changed = Signal(int)
+    transform_requested = Signal(str, float, float)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("Toolbar")
         self.setStyleSheet(STYLESHEET)
-        self.setFixedHeight(64)
+        
+        self.setMinimumHeight(80)
+        
+        self.main_layout = QHBoxLayout(self)
+        self.main_layout.setContentsMargins(20, 12, 20, 12) 
+        self.main_layout.setSpacing(30) 
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(16, 10, 16, 10)
-        layout.setSpacing(12)
+        self._init_draw_section()
+        self._add_separator()
+        self._init_algorithm_section()
+        self._add_separator()
+        self._init_transform_section()
+        
+        self.main_layout.addStretch()
 
+    def _create_section_container(self, title):
+        container = QVBoxLayout()
+        container.setSpacing(4)
+        lbl = QLabel(title)
+        lbl.setProperty("class", "SectionTitle")
+        container.addWidget(lbl, alignment=Qt.AlignCenter)
+        
+        layout = QHBoxLayout()
+        layout.setSpacing(4)
+        container.addLayout(layout)
+        return container, layout
+
+    def _add_separator(self):
+        line = QFrame()
+        line.setFrameShape(QFrame.VLine)
+        line.setFrameShadow(QFrame.Sunken)
+        line.setStyleSheet(f"color: {PALETTE['border']};")
+        self.main_layout.addWidget(line)
+
+    def _init_draw_section(self):
+        container, layout = self._create_section_container("Tools")
         self.button_group = QButtonGroup(self)
-        self.button_group.setExclusive(True)
-        self.button_group.buttonClicked.connect(self._on_button_clicked)
+        
+        tools = [
+            ("SELECT", "select"),
+            (PrimitiveType.POINT, "fiber_manual_record"),
+            (PrimitiveType.LINE, "diagonal_line"),
+            (PrimitiveType.CIRCLE, "circle"),
+            (PrimitiveType.POLYGON, "hexagon")
+        ]
 
-        for primitive, icon_name, label in TOOLS:
-            btn = ToolButton(primitive, icon_name, label, self)
+        for prim, icon in tools:
+            btn = QToolButton()
+            btn.setCheckable(True)
+            btn.setIcon(MaterialIcon(icon))
+            btn.setIconSize(QSize(22, 22))
+            btn.primitive = prim
             self.button_group.addButton(btn)
             layout.addWidget(btn)
 
-        layout.addStretch()
-
-        self.alg_container = QFrame()
-        self.alg_container.setObjectName("AlgContainer")
-        self.alg_container.setFixedHeight(40)
+        layout.addSpacing(10)
+        layout.addWidget(QLabel("R:"))
         
-        alg_layout = QHBoxLayout(self.alg_container)
-        alg_layout.setContentsMargins(2, 2, 2, 2)
-        alg_layout.setSpacing(0)
+        self.spin_radius = QSpinBox()
+        self.spin_radius.setRange(1, 999)
+        self.spin_radius.setValue(50)
+        self.spin_radius.setFixedWidth(55)
+        self.spin_radius.valueChanged.connect(self.radius_changed.emit)
+        layout.addWidget(self.spin_radius)
+        
+        self.main_layout.addLayout(container)
+        self.button_group.buttonClicked.connect(lambda b: self.tool_changed.emit(b.primitive))
 
+    def _init_algorithm_section(self):
+        container, layout = self._create_section_container("Rasterização")
         self.alg_group = QButtonGroup(self)
-        self.alg_group.setExclusive(True)
-        self.alg_group.buttonClicked.connect(self._on_algorithm_changed)
-
-        self.btn_dda = QToolButton()
-        self.btn_dda.setText("DDA")
-        self.btn_dda.setCheckable(True)
-        self.btn_dda.setProperty("class", "alg-btn")
-        self.btn_dda.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_dda.primitive = LineAlgorithm.DDA
         
-        self.btn_bresenham = QToolButton()
-        self.btn_bresenham.setText("Bresenham")
-        self.btn_bresenham.setCheckable(True)
-        self.btn_bresenham.setProperty("class", "alg-btn")
-        self.btn_bresenham.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_bresenham.primitive = LineAlgorithm.BRESENHAM
-
-        self.alg_group.addButton(self.btn_dda)
-        self.alg_group.addButton(self.btn_bresenham)
-        alg_layout.addWidget(self.btn_dda)
-        alg_layout.addWidget(self.btn_bresenham)
-
-        layout.addWidget(self.alg_container)
-
-        
-        if self.button_group.buttons():
-            self.button_group.buttons()[1].setChecked(True)
-            self._active_tool = self.button_group.buttons()[1].primitive
+        for name, alg in [("DDA", LineAlgorithm.DDA), ("BRES", LineAlgorithm.BRESENHAM)]:
+            btn = QToolButton()
+            btn.setText(name)
+            btn.setCheckable(True)
+            btn.primitive = alg
+            if name == "DDA": btn.setChecked(True)
+            self.alg_group.addButton(btn)
+            layout.addWidget(btn)
             
-        self.btn_dda.setChecked(True)
-        self._active_algorithm = LineAlgorithm.DDA
+        self.main_layout.addLayout(container)
+        self.alg_group.buttonClicked.connect(lambda b: self.algorithm_changed.emit(b.primitive))
 
-        self._update_algorithm_visibility()
+    def _init_transform_section(self):
+        container, layout = self._create_section_container("Transformações")
+        layout.setSpacing(6)
 
-    @property
-    def active_tool(self):
-        return self._active_tool
+        self.chk_t = QCheckBox("T:")
+        self.t_x = QSpinBox(); self.t_y = QSpinBox()
+        for s in [self.t_x, self.t_y]: 
+            s.setRange(-999, 999)
+            s.setFixedWidth(55)
+        layout.addWidget(self.chk_t)
+        layout.addWidget(self.t_x)
+        layout.addWidget(self.t_y)
+        layout.addSpacing(10)
 
-    @property
-    def active_algorithm(self):
-        return self._active_algorithm
+        self.chk_s = QCheckBox("S:")
+        self.s_x = QDoubleSpinBox(); self.s_y = QDoubleSpinBox()
+        for s in [self.s_x, self.s_y]: 
+            s.setRange(-99, 99)
+            s.setValue(1)
+            s.setFixedWidth(55)
+        layout.addWidget(self.chk_s)
+        layout.addWidget(self.s_x)
+        layout.addWidget(self.s_y)
+        layout.addSpacing(10)
 
-    def _on_button_clicked(self, button: QToolButton):
-        self._active_tool = button.primitive
-        self.tool_changed.emit(self._active_tool)
-        self._update_algorithm_visibility()
+        self.chk_r = QCheckBox("R:")
+        self.r_ang = QDoubleSpinBox()
+        self.r_ang.setRange(-360, 360)
+        self.r_ang.setFixedWidth(55)
+        layout.addWidget(self.chk_r)
+        layout.addWidget(self.r_ang)
+        layout.addSpacing(10)
 
-    def _on_algorithm_changed(self, button: QToolButton):
-        self._active_algorithm = button.primitive
-        self.algorithm_changed.emit(self._active_algorithm)
+        self.chk_ref = QCheckBox("Ref:")
+        self.ref_cb = QComboBox()
+        self.ref_cb.addItems(["X", "Y", "XY"])
+        self.ref_cb.setFixedWidth(50)
+        layout.addWidget(self.chk_ref)
+        layout.addWidget(self.ref_cb)
+        layout.addSpacing(10)
 
-    def _update_algorithm_visibility(self):
-        is_line_tool = (self._active_tool == PrimitiveType.LINE)
-        self.alg_container.setVisible(is_line_tool)
+        btn_apply = QToolButton()
+        btn_apply.setText("Aplicar")
+        btn_apply.setStyleSheet(f"background-color: {PALETTE['active']}; color: white; font-weight: bold;")
+        btn_apply.clicked.connect(self._emit_multiple_transforms)
+        layout.addWidget(btn_apply)
+
+        self.main_layout.addLayout(container)
+
+    def _emit_multiple_transforms(self):
+        if self.chk_s.isChecked():
+            self.transform_requested.emit("scale", self.s_x.value(), self.s_y.value())
+
+        if self.chk_ref.isChecked():
+            idx = self.ref_cb.currentIndex()
+            if idx == 0:
+                self.transform_requested.emit("reflect_x", 1.0, 0.0)
+            elif idx == 1:
+                self.transform_requested.emit("reflect_y", 0.0, 1.0)
+            elif idx == 2:
+                self.transform_requested.emit("reflect_xy", 1.0, 1.0)
+                
+        if self.chk_r.isChecked():
+            self.transform_requested.emit("rotate", self.r_ang.value(), 0.0)
+            
+        if self.chk_t.isChecked():
+            self.transform_requested.emit("translate", self.t_x.value(), self.t_y.value())
