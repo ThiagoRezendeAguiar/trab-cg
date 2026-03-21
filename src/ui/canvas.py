@@ -3,6 +3,7 @@ from PySide6.QtGui import QColor, QImage, QPainter, Qt, QPen, QBrush
 from PySide6.QtCore import QRect
 
 from algorithms.rasterization import circle_bresenham, dda, line_bresenham
+from algorithms.transformation import apply_transformations
 from model.primitives import Point, Primitive, PrimitiveType
 from ui.toolbar import LineAlgorithm
 
@@ -145,3 +146,13 @@ class CanvasWidget(QWidget):
             draw_color = (255, 0, 0) if prim.selected else prim.color
             for x, y in calc_points(prim):
                 self._pixelmap.setPixelColor(x, y, QColor(*draw_color))
+
+    def apply_transformations(self, transforms):
+        has_selection = False
+        for prim in self.scene.primitives:
+            if prim.selected:
+                has_selection = True
+                apply_transformations(prim, transforms)
+        
+        if has_selection:
+            self.update()

@@ -63,7 +63,7 @@ class ToolBar(QFrame):
     tool_changed = Signal(object)
     algorithm_changed = Signal(object)
     radius_changed = Signal(int)
-    transform_requested = Signal(str, float, float)
+    transform_requested = Signal(dict)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -104,7 +104,7 @@ class ToolBar(QFrame):
         self.main_layout.addWidget(line)
 
     def _init_draw_section(self):
-        container, layout = self._create_section_container("Tools")
+        container, layout = self._create_section_container("Ferramentas")
         self.button_group = QButtonGroup(self)
         
         tools = [
@@ -170,7 +170,7 @@ class ToolBar(QFrame):
         self.chk_s = QCheckBox("S:")
         self.s_x = QDoubleSpinBox(); self.s_y = QDoubleSpinBox()
         for s in [self.s_x, self.s_y]: 
-            s.setRange(-99, 99)
+            s.setRange(0, 999)
             s.setValue(1)
             s.setFixedWidth(55)
         layout.addWidget(self.chk_s)
@@ -203,20 +203,19 @@ class ToolBar(QFrame):
         self.main_layout.addLayout(container)
 
     def _emit_multiple_transforms(self):
-        if self.chk_s.isChecked():
-            self.transform_requested.emit("scale", self.s_x.value(), self.s_y.value())
-
-        if self.chk_ref.isChecked():
-            idx = self.ref_cb.currentIndex()
-            if idx == 0:
-                self.transform_requested.emit("reflect_x", 1.0, 0.0)
-            elif idx == 1:
-                self.transform_requested.emit("reflect_y", 0.0, 1.0)
-            elif idx == 2:
-                self.transform_requested.emit("reflect_xy", 1.0, 1.0)
-                
-        if self.chk_r.isChecked():
-            self.transform_requested.emit("rotate", self.r_ang.value(), 0.0)
-            
+        transforms = {}
+        
         if self.chk_t.isChecked():
-            self.transform_requested.emit("translate", self.t_x.value(), self.t_y.value())
+            transforms['translate'] = (self.t_x.value(), self.t_y.value())
+            
+        if self.chk_s.isChecked():
+            transforms['scale'] = (self.s_x.value(), self.s_y.value())
+            
+        if self.chk_r.isChecked():
+            transforms['rotate'] = self.r_ang.value()
+            
+        if self.chk_ref.isChecked():
+            transforms['reflect'] = self.ref_cb.currentText()
+            
+        if transforms:
+            self.transform_requested.emit(transforms)
