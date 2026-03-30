@@ -80,6 +80,8 @@ class ToolBar(QFrame):
         self._add_separator()
         self._init_algorithm_section()
         self._add_separator()
+        self._init_clipping_section()
+        self._add_separator()
         self._init_transform_section()
         
         self.main_layout.addStretch()
@@ -152,6 +154,34 @@ class ToolBar(QFrame):
             
         self.main_layout.addLayout(container)
         self.alg_group.buttonClicked.connect(lambda b: self.algorithm_changed.emit(b.primitive))
+
+    def _init_clipping_section(self):
+        container, layout = self._create_section_container("Recorte")
+        self.clip_alg_group = QButtonGroup(self)
+
+        btn_clip = QToolButton()
+        btn_clip.setCheckable(True)
+        btn_clip.setIcon(MaterialIcon("crop"))
+        btn_clip.setIconSize(QSize(22, 22))
+        btn_clip.primitive = "CLIP" 
+
+        self.button_group.addButton(btn_clip)
+        layout.addWidget(btn_clip)
+        
+        for name in ["CS", "LB"]:
+            btn_alg = QToolButton()
+            btn_alg.setText(name)
+            btn_alg.setCheckable(True)
+            btn_alg.primitive = name 
+            
+            if name == "CS": 
+                btn_alg.setChecked(True)
+                
+            self.clip_alg_group.addButton(btn_alg) 
+            layout.addWidget(btn_alg)
+            
+        self.main_layout.addLayout(container)
+        self.clip_alg_group.buttonClicked.connect(lambda b: self.algorithm_changed.emit(b.primitive))
 
     def _init_transform_section(self):
         container, layout = self._create_section_container("Transformações")
