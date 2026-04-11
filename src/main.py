@@ -1,6 +1,6 @@
 import sys
-import ctypes
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 
 from model.scene import Scene
@@ -39,7 +39,13 @@ class MainWindow(QMainWindow):
         self.toolbar.transform_requested.connect(self.canvas.apply_transformations)
 
 if __name__ == "__main__":
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QApplication(sys.argv)
+
+    font = app.font()
+    font.setFamily("Segoe UI" if sys.platform == "win32" else "Sans-Serif")
+    app.setFont(font)
+
     app.setStyle("Fusion")
 
     window = MainWindow()

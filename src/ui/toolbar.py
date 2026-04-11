@@ -25,6 +25,8 @@ STYLESHEET = f"""
         background-color: {PALETTE['bg']}; 
         border-bottom: 1px solid {PALETTE['border']}; 
     }}
+    
+    /* Botões da Toolbar */
     QToolButton {{
         border: 1px solid transparent;
         border-radius: 6px;
@@ -34,28 +36,49 @@ STYLESHEET = f"""
     }}
     QToolButton:hover {{ 
         background-color: {PALETTE['hover']}; 
-        border: 1px solid {PALETTE['border']};
     }}
     QToolButton:checked {{ 
         background-color: {PALETTE['active']}; 
         color: white; 
-        border: 1px solid {PALETTE['active']};
     }}
-    QSpinBox, QDoubleSpinBox {{
+
+    /* Padronização de Inputs (Spinners e Combos) */
+    QSpinBox, QDoubleSpinBox, QComboBox {{
         border: 1px solid {PALETTE['border']};
         border-radius: 4px;
         background: white;
         padding: 2px 4px;
         color: {PALETTE['text_main']};
+        selection-background-color: {PALETTE['active']};
     }}
+
+    /* Padronização dos Checkboxes (Onde ocorre a maior diferença) */
+    QCheckBox {{
+        color: {PALETTE['text_sec']};
+        spacing: 5px;
+        font-weight: bold;
+    }}
+    
+    /* Estilizando o 'quadradinho' do checkbox para não ser o nativo */
+    QCheckBox::indicator {{
+        width: 14px;
+        height: 14px;
+        border: 1px solid {PALETTE['border']};
+        border-radius: 3px;
+        background: white;
+    }}
+    
+    QCheckBox::indicator:checked {{
+        background-color: {PALETTE['active']};
+        border: 1px solid {PALETTE['active']};
+        /* Opcional: Adicionar um ícone de 'check' aqui */
+    }}
+
     QLabel {{ 
         color: {PALETTE['text_sec']}; 
         font-size: 11px; 
         font-weight: 600; 
         text-transform: uppercase; 
-    }}
-    QLabel.SectionTitle {{
-        margin-bottom: 4px;
     }}
 """
 
